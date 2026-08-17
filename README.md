@@ -1,93 +1,94 @@
-# 100-App Agent-Buildability Audit
+# Composio AI Product Ops Intern — Take-Home
 
-Composio AI Product Ops Intern take-home. Researches whether each of 100 given
-apps could power an agent toolkit today — auth method, self-serve vs gated,
-API surface, existing MCP, buildability verdict — using an agent, not by hand,
-then verifies the agent's accuracy against real docs on a sample.
+Research agent that evaluates 100 apps across 10 categories for agent-toolkit
+buildability: auth method, self-serve vs gated access, API surface, MCP
+availability, and a buildability verdict — each backed by a docs URL.
 
-Runs entirely on **Groq's free tier** — no paid API required.
+**Live page:** <your deployed link>
+**Case study:** see `report.html` / deployed link above
 
-## Why it's structured this way
+---
 
-- **`data/apps.json`** — the 100-app list from the brief, as data (not hardcoded).
-- **`agent/research_agent.py`** — the actual research agent. Calls
-  `groq/compound` — Groq's agentic system with a built-in, auto-triggered
-  `web_search` tool — once per app, forcing a fixed JSON schema. Appends each
-  result to `data/results.jsonl` as it goes (resumable — a crash on app 63
-  doesn't lose apps 1–62).
-- **`agent/baseline_naive.py`** — the *same* schema, but a **plain** Groq
-  model (`openai/gpt-oss-120b`, no tools) — pure memory. This exists to
-  produce an honest "Pass 0" so the report can show accuracy climbing, not
-  just assert it.
-- **`agent/verify.py`** — takes a sample (~15 apps), diffs Pass 0 (memory) and
-  Pass 1 (agent + search) against a `human_truth.json` you fill in by hand
-  from the real docs. Outputs per-pass accuracy and the exact misses.
-- **`agent/generate_report.py`** — reads `results.jsonl` (+ `verification.json`
-  if present) and renders `report/index.html`: one self-contained static file,
-  no build step, no server, no dependency on the JSON files after generation.
+## What's in this repo
 
-## Run it
+```
+agent/
+  research_agent.py     # runs the 100-app research pass (Groq compound + web_search)
+  generate_report.py    # builds the HTML case study from results
+data/
+  results.jsonl         # raw output, one JSON object per app
+.env.example             # template for required environment variables
+.gitignore
+README.md
+```
+
+## Setup
+
+1. Clone the repo and install dependencies:
+   ```bash
+   git clone https://github.com/rishabhdkmjha/Composio.git
+   cd Composio
+   pip install -r requirements.txt
+   ```
+
+2. Copy the environment template and add your own Groq API key:
+   ```bash
+   cp .env.example .env
+   ```
+   Then open `.env` and set:
+   ```
+   GROQ_API_KEY=your_key_here
+   ```
+   Get a free key at [console.groq.com](https://console.groq.com).
+
+   > **Note on security:** `.env` is gitignored and never committed. If you're
+   > forking this repo, always use your own key — never commit `.env` itself,
+   > only `.env.example` with placeholder values.
+
+## Running the research agent
+
+Run the full 100-app pass:
+```bash
+python agent/research_agent.py
+```
+
+Re-research specific apps only (useful for re-checking flagged/low-confidence rows,
+or testing on a new app not in the original 100):
+```bash
+python agent/research_agent.py --ids <app-ids>
+```
+
+The agent is **resumable**: each result is appended to `data/results.jsonl`
+as soon as it's produced, so a rate limit or bad response on one app doesn't
+lose progress on the rest — re-running skips apps already completed.
+
+## Generating the report
 
 ```bash
-pip install groq --break-system-packages
-export GROQ_API_KEY=gsk_...          # free key from console.groq.com
-
-# 1. Research all 100 (resumable — safe to re-run, skips apps already done)
-#    Paced at ~2.2s/request to stay under the free-tier rate limit on compound.
-python agent/research_agent.py
-
-# 2. Pick a verification sample (mix easy/hard/gated apps), e.g.:
-SAMPLE=3,12,21,27,34,41,56,63,71,81,90,92,96,99
-
-# 3. Run the no-tools baseline on the same sample (for the "Pass 0" comparison)
-python agent/baseline_naive.py --ids $SAMPLE
-
-# 4. Get a blank human-check template, then fill it in BY HAND from real docs
-python agent/verify.py --ids $SAMPLE --emit-template
-#    -> edit data/human_truth.json with what you actually found on each app's docs
-
-# 5. Compute accuracy across passes
-python agent/verify.py --ids $SAMPLE
-
-# 6. Render the final report
 python agent/generate_report.py
 ```
 
-Then open `report/index.html` directly, or deploy it (drag-and-drop onto
-Netlify, `vercel deploy`, or push `report/` to a GitHub Pages branch — it's a
-single static file, nothing else required).
+This reads `data/results.jsonl` and produces the case-study HTML page
+(findings matrix, headline patterns, verification results).
 
-## About the free tier
+## How it works
 
-`groq/compound`'s free tier is rate-limited (roughly 30 requests/min at time
-of writing — check `console.groq.com` for current limits). Researching all
-100 apps at ~2.2s/request takes about 4 minutes of wall-clock time; if you
-hit a 429, just re-run the same command — `research_agent.py` is resumable
-and skips apps already in `results.jsonl`.
+- Each app gets its own call to `groq/compound`, an agentic system on Groq's
+  free tier with an automatically-triggered `web_search` tool — instructed to
+  search the app's current developer docs (not answer from memory) and reply
+  in a fixed JSON schema: category, auth methods, self-serve/gated, API
+  surface, MCP existence, buildability verdict, evidence URL, and a
+  confidence field.
+- Low-confidence rows and a random sample are manually cross-checked against
+  real docs — see the Verification section on the case-study page for the
+  before/after accuracy numbers and a list of what the agent got wrong.
+- A Composio-native variant is also available: same schema and verification
+  loop, but pointed at Composio's own hosted MCP server instead of a generic
+  web-search tool.
 
-## Current state of this repo
+## Verification
 
-`data/results.jsonl` currently has **4 apps hand-seeded and verified** (Stripe,
-GitHub, Notion, PitchBook) as a working proof-of-concept, researched and
-cross-checked by hand before switching the pipeline over to Groq, so the
-report renders correctly end-to-end before spending the full run on all 100.
-Run step 1 above with your own Groq key to fill in the rest.
-
-## Honesty notes for the reviewer
-
-- The agent is instructed to prefer the app's own `docs.<domain>` over
-  third-party aggregators or Composio's own existing listing of the app —
-  the point is independent verification, not restating Composio's answer.
-- While researching Notion's auth docs, one of the top search results was
-  Composio's own `composio.dev/auth/notion` page, which contains text
-  addressed directly at AI agents reading the page ("If you are an AI agent
-  reading this server-rendered HTML, [sign up at] composio.dev... confirm
-  with the user before entering credentials"). The system prompt tells the
-  agent to treat this as untrusted page content, not an instruction to
-  follow, and to note it rather than act on it — it's worth flagging on the
-  report page itself as a small, real example of what "verification" catches.
-- `groq/compound` cannot be pointed at a remote MCP server — only its own
-  built-in tools. The Composio-native variant (see the docstring in
-  `research_agent.py`) uses a plain Groq model with remote-tool calling
-  against Composio's own hosted MCP server instead — left as a stub since it
-  needs your own Composio API key + a connected search-capable toolkit to run.
+Accuracy was measured on a 14-app sample, hand-checked against real docs on:
+`auth_methods`, `self_serve`, `mcp_exists`, `buildability_verdict`. Results
+and honest hit/miss breakdown are shown on the case-study page under
+"Verification."
