@@ -1,0 +1,1178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>100-App Agent-Buildability Audit — Composio Take-Home</title>
+<style>
+  :root {
+    --bg: #0b0d0f;
+    --bg-panel: #111417;
+    --bg-panel-2: #15181c;
+    --line: #23282e;
+    --text: #e6e9ec;
+    --text-dim: #8a949e;
+    --accent: #4ee1a0;
+    --accent-dim: #2c8e6c;
+    --warn: #e0a94e;
+    --bad: #e15a5a;
+    --mono: 'SF Mono', 'JetBrains Mono', Consolas, monospace;
+    --sans: -apple-system, 'Inter', 'Segoe UI', sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: var(--sans); line-height: 1.5;
+  }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 48px 24px 96px; }
+  .eyebrow {
+    font-family: var(--mono); font-size: 12px; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--accent); margin-bottom: 10px;
+  }
+  h1 { font-size: 34px; margin: 0 0 10px; letter-spacing: -0.01em; }
+  .sub { color: var(--text-dim); font-size: 16px; max-width: 720px; margin-bottom: 40px; }
+  .headline-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1px; background: var(--line); border: 1px solid var(--line);
+    border-radius: 10px; overflow: hidden; margin-bottom: 48px;
+  }
+  .stat { background: var(--bg-panel); padding: 22px 20px; }
+  .stat .num { font-family: var(--mono); font-size: 30px; color: var(--accent); }
+  .stat .label { font-size: 13px; color: var(--text-dim); margin-top: 4px; }
+  section { margin-bottom: 56px; }
+  h2 {
+    font-family: var(--mono); font-size: 13px; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--text-dim); margin: 0 0 18px;
+    border-bottom: 1px solid var(--line); padding-bottom: 10px;
+  }
+  .panel { background: var(--bg-panel); border: 1px solid var(--line); border-radius: 10px; padding: 24px; }
+  .bar-row { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; font-size: 13px; }
+  .bar-label { width: 150px; flex-shrink: 0; color: var(--text-dim); font-family: var(--mono); }
+  .bar-track { flex: 1; height: 8px; background: var(--bg-panel-2); border-radius: 4px; overflow: hidden; }
+  .bar-fill { height: 100%; background: var(--accent); border-radius: 4px; }
+  .bar-val { width: 40px; text-align: right; font-family: var(--mono); color: var(--text-dim); }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th {
+    text-align: left; font-family: var(--mono); font-weight: 500; font-size: 11px;
+    text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-dim);
+    padding: 10px 12px; border-bottom: 1px solid var(--line);
+  }
+  td { padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  tr:hover td { background: var(--bg-panel-2); }
+  .badge {
+    display: inline-block; font-family: var(--mono); font-size: 11px;
+    padding: 2px 8px; border-radius: 4px; white-space: nowrap;
+  }
+  .badge.ok { background: rgba(78,225,160,0.12); color: var(--accent); }
+  .badge.warn { background: rgba(224,169,78,0.12); color: var(--warn); }
+  .badge.bad { background: rgba(225,90,90,0.12); color: var(--bad); }
+  .evidence-link { color: var(--text-dim); font-size: 12px; text-decoration: none; }
+  .evidence-link:hover { color: var(--accent); }
+  .filters { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+  .filters button {
+    font-family: var(--mono); font-size: 12px; background: var(--bg-panel-2);
+    border: 1px solid var(--line); color: var(--text-dim); padding: 6px 12px;
+    border-radius: 20px; cursor: pointer;
+  }
+  .filters button.active { background: var(--accent); color: #06110b; border-color: var(--accent); }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  @media (max-width: 720px) { .two-col { grid-template-columns: 1fr; } }
+  .agent-steps { display: grid; gap: 14px; }
+  .agent-step { display: flex; gap: 14px; }
+  .agent-step .n {
+    font-family: var(--mono); color: var(--accent); font-size: 13px;
+    width: 24px; flex-shrink: 0; padding-top: 2px;
+  }
+  .agent-step .txt strong { display: block; margin-bottom: 2px; }
+  .agent-step .txt span { color: var(--text-dim); font-size: 13px; }
+  .accuracy-track { display: flex; gap: 8px; align-items: flex-end; height: 120px; margin-top: 8px; }
+  .accuracy-col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; }
+  .accuracy-bar { width: 60%; background: var(--accent); border-radius: 4px 4px 0 0; }
+  .accuracy-bar.dim { background: var(--text-dim); opacity: 0.5; }
+  .accuracy-num { font-family: var(--mono); font-size: 13px; margin-bottom: 6px; }
+  .accuracy-caption { font-size: 11px; color: var(--text-dim); margin-top: 8px; text-align: center; }
+  .honesty-note {
+    border-left: 3px solid var(--warn); padding: 12px 16px; background: rgba(224,169,78,0.06);
+    font-size: 13px; color: var(--text-dim); border-radius: 0 6px 6px 0;
+  }
+  .links { display: flex; gap: 16px; flex-wrap: wrap; }
+  .links a {
+    font-family: var(--mono); font-size: 13px; color: var(--accent); text-decoration: none;
+    border: 1px solid var(--accent-dim); padding: 8px 16px; border-radius: 6px;
+  }
+  .links a:hover { background: rgba(78,225,160,0.08); }
+  footer { margin-top: 64px; color: var(--text-dim); font-size: 12px; font-family: var(--mono); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="eyebrow">Composio · AI Product Ops Intern Take-Home</div>
+  <h1>Can an agent build a toolkit for this app today?</h1>
+  <div class="sub">
+    100 of 100 apps researched across 10 categories. An agent did the
+    first pass, a human checked its work, and the accuracy of each step is shown below —
+    not just the final numbers.
+  </div>
+
+  <div class="headline-grid">
+    <div class="stat"><div class="num">29%</div><div class="label">self-serve today</div></div>
+    <div class="stat"><div class="num">Unclear</div><div class="label">most common auth</div></div>
+    <div class="stat"><div class="num">4%</div><div class="label">already have an MCP</div></div>
+    <div class="stat"><div class="num">26</div><div class="label">easy wins (self-serve + buildable today)</div></div>
+  </div>
+
+  <section>
+    <h2>01 — Headline patterns</h2>
+    <div class="two-col">
+      <div class="panel">
+        <div style="font-size:13px;color:var(--text-dim);margin-bottom:14px;">Auth method distribution</div>
+        <div class="bar-row">
+      <div class="bar-label">Unclear</div>
+      <div class="bar-track"><div class="bar-fill" style="width:100%"></div></div>
+      <div class="bar-val">68</div>
+    </div>
+<div class="bar-row">
+      <div class="bar-label">API key</div>
+      <div class="bar-track"><div class="bar-fill" style="width:25%"></div></div>
+      <div class="bar-val">17</div>
+    </div>
+<div class="bar-row">
+      <div class="bar-label">OAuth2</div>
+      <div class="bar-track"><div class="bar-fill" style="width:22%"></div></div>
+      <div class="bar-val">15</div>
+    </div>
+<div class="bar-row">
+      <div class="bar-label">Token</div>
+      <div class="bar-track"><div class="bar-fill" style="width:6%"></div></div>
+      <div class="bar-val">4</div>
+    </div>
+<div class="bar-row">
+      <div class="bar-label">Basic</div>
+      <div class="bar-track"><div class="bar-fill" style="width:1%"></div></div>
+      <div class="bar-val">1</div>
+    </div>
+      </div>
+      <div class="panel">
+        <div style="font-size:13px;color:var(--text-dim);margin-bottom:14px;">Self-serve vs gated vs partial</div>
+        <div class="bar-row">
+      <div class="bar-label">self-serve</div>
+      <div class="bar-track"><div class="bar-fill" style="width:48%"></div></div>
+      <div class="bar-val">29</div>
+    </div>
+<div class="bar-row">
+      <div class="bar-label">unclear</div>
+      <div class="bar-track"><div class="bar-fill" style="width:100%"></div></div>
+      <div class="bar-val">60</div>
+    </div>
+<div class="bar-row">
+      <div class="bar-label">partial</div>
+      <div class="bar-track"><div class="bar-fill" style="width:3%"></div></div>
+      <div class="bar-val">2</div>
+    </div>
+<div class="bar-row">
+      <div class="bar-label">gated</div>
+      <div class="bar-track"><div class="bar-fill" style="width:15%"></div></div>
+      <div class="bar-val">9</div>
+    </div>
+      </div>
+    </div>
+    <div class="panel" style="margin-top:16px;">
+      <div style="font-size:13px;color:var(--text-dim);margin-bottom:14px;">Most common blockers (when not buildable today)</div>
+      <div class="bar-row"><div style="flex:1;font-size:13px;">unknown authentication method</div><div class="bar-val">3</div></div>
+<div class="bar-row"><div style="flex:1;font-size:13px;">Insufficient documentation to determine API usage</div><div class="bar-val">3</div></div>
+<div class="bar-row"><div style="flex:1;font-size:13px;">Unknown authentication method</div><div class="bar-val">3</div></div>
+<div class="bar-row"><div style="flex:1;font-size:13px;">Insufficient documentation on authentication and API usage</div><div class="bar-val">3</div></div>
+<div class="bar-row"><div style="flex:1;font-size:13px;">No available documentation on authentication or API usage</div><div class="bar-val">2</div></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>02 — The 100-app matrix</h2>
+    <div class="filters" id="filters">
+      <button class="active" data-filter="all">All</button>
+      <button data-filter="buildable today">Buildable today</button>
+      <button data-filter="buildable with workaround">Workaround needed</button>
+      <button data-filter="blocked">Blocked</button>
+    </div>
+    <div class="panel" style="padding:0;overflow-x:auto;">
+      <table id="matrix-table">
+        <thead><tr>
+          <th>App</th><th>Category</th><th>Auth</th><th>Access</th><th>MCP?</th><th>Verdict</th><th>Evidence</th>
+        </tr></thead>
+        <tbody><tr data-verdict="buildable today">
+          <td><strong>Salesforce</strong></td>
+          <td style="color:var(--text-dim)">CRM and Sales</td>
+          <td>OAuth2</td>
+          <td>self-serve</td>
+          <td>No</td>
+          <td><span class="badge ok">buildable today</span></td>
+          <td><a class="evidence-link" href="https://developer.salesforce.com/docs/atlas.en-us.api_rest.meta/api_rest/intro_what_is_rest_api.htm">docs →</a></td>
+        </tr>
+<tr data-verdict="buildable today">
+          <td><strong>HubSpot</strong></td>
+          <td style="color:var(--text-dim)">CRM and Sales</td>
+          <td>API key, Unclear</td>
+          <td>self-serve</td>
+          <td>?</td>
+          <td><span class="badge ok">buildable today</span></td>
+          <td><a class="evidence-link" href="https://developers.hubspot.com/docs">docs →</a></td>
+        </tr>
+<tr data-verdict="buildable today">
+          <td><strong>Pipedrive</strong></td>
+          <td style="color:var(--text-dim)">CRM and Sales</td>
+          <td>Token</td>
+          <td>self-serve</td>
+          <td>No</td>
+          <td><span class="badge ok">buildable today</span></td>
+          <td><a class="evidence-link" href="https://developers.pipedrive.com/docs/api/v1">docs →</a></td>
+        </tr>
+<tr data-verdict="buildable today">
+          <td><strong>Attio</strong></td>
+          <td style="color:var(--text-dim)">CRM and Sales</td>
+          <td>API key</td>
+          <td>self-serve</td>
+          <td>?</td>
+          <td><span class="badge ok">buildable today</span></td>
+          <td><a class="evidence-link" href="https://docs.attio.com/rest-api/overview">docs →</a></td>
+        </tr>
+<tr data-verdict="blocked">
+          <td><strong>Twenty</strong></td>
+          <td style="color:var(--text-dim)">CRM and Sales</td>
+          <td>Unclear</td>
+          <td>unclear</td>
+          <td>?</td>
+          <td><span class="badge bad">blocked</span></td>
+          <td><a class="evidence-link" href="https://docs.twenty.com/developers/extend/api">docs →</a></td>
+        </tr>
+<tr data-verdict="blocked">
+          <td><strong>Podio</strong></td>
+          <td style="color:var(--text-dim)">CRM and Sales</td>
+          <td>Unclear</td>
+          <td>unclear</td>
+          <td>?</td>
+          <td><span class="badge bad">blocked</span></td>
+          <td><a class="evidence-link" href="https://developers.podio.com">docs →</a></td>
+        </tr>
+<tr data-verdict="buildable with workaround">
+          <td><strong>Zoho CRM</strong></td>
+          <td style="color:var(--text-dim)">CRM and Sales</td>
+          <td>Unclear</td>
+          <td>self-serve</td>
+          <td>?</td>
+          <td><span class="badge warn">buildable with workaround</span></td>
+          <td><a class="evidence-link" href="https://www.zoho.com/crm/developer/docs">docs →</a></td>
+        </tr>
+<tr data-verdict="blocked">
+          <td><strong>Close</strong></td>
+          <td style="color:var(--text-dim)">CRM and Sales</td>
+          <td>Unclear</td>
+          <td>unclear</td>
+          <td>?</td>
+          <td><span class="badge bad">blocked</span></td>
+          <td><a class="evidence-link" href="https://developer.close.com/api/overview">docs →</a></td>
+        </tr>
+<tr data-verdict="buildable today">
+          <td><strong>Copper</strong></td>
+          <td style="color:var(--text-dim)">CRM and Sales</td>
+          <td>OAuth2</td>
+          <td>self-serve</td>
+          <td>?</td>
+          <td><span class="badge ok">buildable today</span></td>
+          <td><a class="evidence-link" href="https://developer.copper.com/introduction/oauth/flow.html">docs →</a></td>
+        </tr>
+<tr data-verdict="blocked">
+          <td><strong>DealCloud</strong></td>
+          <td style="color:var(--text-dim)">CRM and Sales</td>
+          <td>Unclear</td>
+          <td>unclear</td>
+          <td>?</td>
+          <td><span class="badge bad">blocked</span></td>
+          <td><a class="evidence-link" href="https://api.docs.dealcloud.com/docs">docs →</a></td>
+        </tr>
+<tr data-verdict="blocked">
+          <td><strong>Zendesk</strong></td>
+          <td style="color:var(--text-dim)">Support and Helpdesk</td>
+          <td>Unclear</td>
+          <td>unclear</td>
+          <td>?</td>
+          <td><span class="badge bad">blocked</span></td>
+          <td><a class="evidence-link" href="https://developer.zendesk.com/api-reference">docs →</a></td>
+        </tr>
+<tr data-verdict="buildable today">
+          <td><strong>Intercom</strong></td>
+          <td style="color:var(--text-dim)">Support and Helpdesk</td>
+          <td>OAuth2, API key</td>
+          <td>self-serve</td>
+          <td>No</td>
+          <td><span class="badge ok">buildable today</span></td>
+          <td><a class="evidence-link" href="https://github.com/intercom/Intercom-OpenAPI">docs →</a></td>
+        </tr>
+<tr data-verdict="blocked">
+          <td><strong>Freshdesk</strong></td>
+          <td style="color:var(--text-dim)">Support and Helpdesk</td>
+          <td>Unclear</td>
+          <td>unclear</td>
+          <td>No</td>
+          <td><span class="badge bad">blocked</span></td>
+          <td><a class="evidence-link" href="https://developers.freshworks.com/docs">docs →</a></td>
+        </tr>
+<tr data-verdict="buildable today">
+          <td><strong>Front</strong></td>
+          <td style="color:var(--text-dim)">Support and Helpdesk</td>
+          <td>OAuth2, API key</td>
+          <td>self-serve</td>
+          <td>No</td>
+          <td><span class="badge ok">buildable today</span></td>
+          <td><a class="evidence-link" href="https://dev.frontapp.com/docs/core-api-overview">docs →</a></td>
+        </tr>
+<tr data-verdict="blocked">
+          <td><strong>Pylon</strong></td>
+          <td style="color:var(--text-dim)">Support and Helpdesk</td>
+          <td>Unclear</td>
+          <td>unclear</td>
+          <td>?</td>
+          <td><span class="badge bad">blocked</span></td>
+          <td><a class="evidence-link" href="https://docs.usepylon.com/pylon-docs/developer/api">docs →</a></td>
+        </tr>
+<tr data-verdict="buildable today">
+          <td><strong>LiveAgent</strong></td>
+          <td style="color:var(--text-dim)">Support and Helpdesk</td>
+          <td>API key</td>
+          <td>self-serve</td>
+          <td>?</td>
+          <td><span class="badge ok">buildable today</span></td>
+          <td><a class="evidence-link" href="https://support.liveagent.com/911737-API-v3">docs →</a></td>
+        </tr>
+<tr data-verdict="blocked">
+          <td><strong>Plain</strong></td>
+          <td style="color:var(--text-dim)">Support and Helpdesk</td>
+          <td>Unclear</td>
+          <td>unclear</td>
+          <td>?</td>
+          <td><span class="badge bad">blocked</span></td>
+          <td><a class="evidence-link" href="https://help.plain.com/article/api-quickstart">docs →</a></td>
+        </tr>
+<tr data-verdict="blocked">
+          <td><strong>Help Scout</strong></td>
+          <td style="color:var(--text-dim)">Support and Helpdesk</td>
+          <td>Unclear</td>
+          <td>unclear</td>
+          <td>?</td>
+          <td><span class="badge bad">blocked</span></td>
+          <td><a class="evidence-link" href="https://docs.helpscout.com/article/1141-docs-api">docs →</a></td>
+        </tr>
+<tr data-verdict="buildable today">
+          <td><strong>Gorgias</strong></td>
+          <td style="color:var(--text-dim)">Support and Helpdesk</td>
+          <td>API key</td>
+          <td>self-serve</td>
+          <td>No</td>
+          <td><span class="badge ok">buildable today</span></td>
+          <td><a class="evidence-link" href="https://docs.gorgias.com/en-US/articles/developer-resources-18370">docs →</a></td>
+        </tr>
+<tr data-verdict="blocked">
+          <td><strong>Gladly</strong></td>
+          <td style="color:var(--text-dim)">Support and Helpdesk</td>
+          <td>Unclear</td>
+          <td>unclear</td>
+          <td>?</td>
+          <td><span class="badge bad">blocked</span></td>
+          <td><a class="evidence-link" href="https://developer.gladly.com/rest">docs →</a></td>
+        </tr>
+<tr data-verdict="blocked">
+          <td><strong>Slack</strong></td>
+          <td style="color:var(--text-dim)">Communications and Messaging</td>
+          <td>Unclear</td>
+          <td>unclear</td>
+          <td>?</td>
+          <td><span class="badge bad">blocked</span></td>
+          <td><a class="evidence-link" href="https://docs.slack.dev">docs →</a></td>
+        </tr>
+<tr data-verdict="blocked">
+          <td><strong>Twilio</strong></td>
+          <td style="color:var(--text-dim)">Communications and Messaging</td>
+          <td>Unclear</td>
+          <td>unclear</td>
+          <td>?</td>
+          <td><span class="badge bad">blocked</span></td>
+          <td><a class="evidence-link" href="https://www.twilio.com/docs">docs →</a></td>
+        </tr>
+<tr data-verdict="buildable today">
+          <td><strong>Zoho Cliq</strong></td>
+          <td style="color:var(--text-dim)">Communications and Messaging</td>
+          <td>OAuth2</td>
+          <td>self-serve</td>
+          <td>No</td>
+          <td><span class="badge ok">buildable today</span></td>
+          <td><a class="evidence-link" href="https://www.zoho.com/cliq/help/restapi/v3/introduction">docs →</a></td>
+        </tr>
+<tr data-verdict="blocked">
+          <td><strong>Lark (Larksuite)</strong></td>
+          <td style="color:var(--text-dim)">Communications and Messaging</td>
+          <td>Unclear</td>
+          <td>unclear</td>
+          <td>?</td>
+          <td><span class="badge bad">blocked</span></td>
+          <td><a class="evidence-link" href="https://open.larksuite.com/document/ukTMukTMukTM/uUDN04SN0QjL1QDN/bitable-overview">docs →</a></td>
+        </tr>
+<tr data-verdict="buildable today">
+          <td><strong>Pumble</strong></td>
+          <td style="color:var(--text-dim)">Communications and Messaging</td>
+          <td>API key</td>
+          <td>self-serve</td>
+          <td>?</td>
+          <td><span class="badge ok">buildable today</span></td>
+          <td><a class="evidence-link" href="https://pumble.com/help/integrations/automation-workflow-integrations/api-keys-integration">docs →</a></td>
+        </tr>
+<tr data-verdict="blocked">
+          <td><strong>Discord</strong></td>
+          <td style="color:var(--text-dim)">Communications and Messaging</td>
+          <td>Unclear</td>
+          <td>unclear</td>
+          <td>No</td>
+          <td><span class="badge bad">blocked</span></td>
+          <td><a class="evidence-link" href="https://docs.discord.com/developers/reference">docs →</a></td>
+        </tr>
+<tr data-verdict="buildable today">
+          <td><strong>Telegram</strong></td>
+          <td style="color:var(--text-dim)">Communications and Messaging</td>
+          <td>API key, Token</td>
+          <td>self-serve</td>
+          <td>No</td>
+          <td><span class="badge ok">buildable today</span></td>
+          <td><a class="evidence-link" href="https://core.telegram.org/api/obtaining_api_id">docs →</a></td>
+        </tr>
+<tr data-verdict="buildable with workaround">
+          <td><strong>WhatsApp Business</strong></td>
+          <td style="color:var(--text-dim)">Communications and Messaging</td>
+          <td>Token</td>
+          <td>partial</td>
+          <td>?</td>
+          <td><span class="badge warn">buildable with workaround</span></td>
+          <td><a class="evidence-link" href="https://developers.facebook.com/documentation/business-messaging/whatsapp/get-started">docs →</a></td>
+        </tr>
+<tr data-verdict="blocked">
+          <td><strong>Aircall</strong></td>
+          <td style="color:var(--text-dim)">Communications and Messaging</td>
+          <td>Unclear</td>
+          <td>unclear</td>
+          <td>?</td>
+          <td><span class="badge bad">blocked</span></td>
+          <td><a class="evidence-link" href="https://developers.aircall.io/api-references">docs →</a></td>
+        </tr>
+<tr data-verdict="blocked">
+          <td><strong>Vonage</strong></td>
+          <td style="color:var(--text-dim)">Communications and Messaging</td>
+          <td>Unclear</td>
+          <td>unclear</td>
+          <td>?</td>
+          <td><span class="badge bad">blocked</span></td>
+          <td><a class="evidence-link" href="https://developer.vonage.com/en/home">docs →</a></td>
+        </tr>
+<tr data-verdict="blocked">
+          <td><strong>Google Ads</strong></td>
+          <td style="color:var(--text-dim)">Marketing, Ads, Email and Social</td>
+          <td>OAuth2</td>
+          <td>gated</td>
+          <td>?</td>
+          <td><span class="badge bad">blocked</span></td>
+          <td><a class="evidence-link" href="https://developers.google.com/google-ads/api/docs/get-started/introduction">docs →</a></td>
+        </tr>
+<tr data-verdict="buildable today">
+          <td><strong>Meta Ads</strong></td>
+          <td style="color:var(--text-dim)">Marketing, Ads, Email and Social</td>
+          <td>OAuth2</td>
+          <td>gated</td>
+          <td>?</td>
+          <td><span class="badge ok">buildable today</span></td>
+          <td><a class="evidence-link" href="https://developers.facebook.com/documentation/ads-commerce/marketing-api">docs →</a></td>
+        </tr>
+<tr data-verdict="buildable today">
+          <td><strong>LinkedIn Ads</strong></td>
+          <td style="color:var(--text-dim)">Marketing, Ads, Email and Social</td>
+          <td>OAuth2</td>
+          <td>gated</td>
+          <td>No</td>
+          <td><span class="badge ok">buildable today</span></td>
+          <td><a class="evidence-link" href="https://learn.microsoft.com/en-us/linkedin/marketing/quick-start?view=li-lms-2026-07">docs →</a></td>
+        </tr>
+<tr data-verdict="blocked">
+          <td><strong>GoHighLevel</strong></td>
+          <td style="color:var(--text-dim)">Marketing, Ads, Email and Social</td>
+          <td>Unclear</td>
+          <td>unclear</td>
+          <td>?</td>
+          <td><span class="badge bad">blocked</span></td>
+          <td><a class="evidence-link" href="https://help.gohighlevel.com/support/solutions/articles/48001060529-highlevel-api-documentation">docs →</a></td>
+        </tr>
+<tr data-verdict="buildable today">
+          <td><strong>Mailchimp</strong></td>
+          <td style="color:var(--text-dim)">Marketing, Ads, Email and Social</td>
+          <td>API key</td>
+          <td>self-serve</td>
+          <td>No</td>
+          <td><span class="badge ok">buildable today</span></td>
+          <td><a class="evidence-link" href="https://mailchimp.com/help/about-api-keys">docs →</a></td>
+        </tr>
+<tr data-verdict="blocked">
+          <td><strong>Klaviyo</strong></td>
+          <td style="color:var(--text-dim)">Marketing, Ads, Email and Social</td>
+          <td>Unclear</td>
+          <td>unclear</td>
+          <td>No</td>
+          <td><span class="badge bad">blocked</span></td>
+          <td><a class="evidence-link" href="https://developers.klaviyo.com">docs →</a></td>
+        </tr>
+<tr data-verdict="blocked">
+          <td><strong>systeme.io</strong></td>
+          <td style="color:var(--text-dim)">Marketing, Ads, Email and Social</td>
+          <td>Unclear</td>
+          <td>unclear</td>
+          <td>?</td>
+          <td><span class="badge bad">blocked</span></td>
+          <td><a class="evidence-link" href="https://help.systeme.io/article/2323-how-to-use-systeme-io-public-api">docs →</a></td>
+        </tr>
+<tr data-verdict="blocked">
+          <td><strong>Pinterest</strong></td>
+          <td style="color:var(--text-dim)">Marketing, Ads, Email and Social</td>
+          <td>OAuth2</td>
+          <td>gated</td>
+          <td>?</td>
+          <td><span class="badge bad">blocked</span></td>
+          <td><a class="evidence-link" href="https://developers.pinterest.com/docs/getting-started/connect-app">docs →</a></td>
+        </tr>
+<tr data-verdict="blocked">
+          <td><strong>Threads (Meta)</strong></td>
+          <td style="color:var(--text-dim)">Marketing, Ads, Email and Social</td>
+          <td>OAuth2</td>
+          <td>gated</td>
+          <td>?</td>
+          <td><span class="badge bad">blocked</span></td>
+          <td><a class="evidence-link" href="https://developers.facebook.com/documentation/threads">docs →</a></td>
+        </tr>
+<tr data-verdict="blocked">
+          <td><strong>SendGrid</strong></td>
+          <td style="color:var(--text-dim)">Marketing, Ads, Email and Social</td>
+          <td>Unclear</td>
+          <td>self-serve</td>
+          <td>?</td>
+          <td><span class="badge bad">blocked</span></td>
+          <td><a class="evidence-link" href="https://www.twilio.com/docs/sendgrid/for-developers">docs →</a></td>
+        </tr>
+<tr data-verdict="blocked">
+          <td><strong>Shopify</strong></td>
+          <td style="color:var(--text-dim)">Ecommerce</td>
+          <td>Unclear</td>
+          <td>unclear</td>
+          <td>?</td>
+          <td><span class="badge bad">blocked</span></td>
+          <td><a class="evidence-link" href="https://shopify.dev/docs">docs →</a></td>
+        </tr>
+<tr data-verdict="blocked">
+          <td><strong>WooCommerce</strong></td>
+          <td style="color:var(--text-dim)">Ecommerce</td>
+          <td>Unclear</td>
+          <td>unclear</td>
+          <td>?</td>
+          <td><span class="badge bad">blocked</span></td>
+          <td><a class="evidence-link" href="https://woocommerce.com/document/woocommerce-rest-api">docs →</a></td>
+        </tr>
+<tr data-verdict="buildable today">
+          <td><strong>BigCommerce</strong></td>
+          <td style="color:var(--text-dim)">Ecommerce</td>
+          <td>API key, OAuth2</td>
+          <td>partial</td>
+          <td>No</td>
+          <td><span class="badge ok">buildable today</span></td>
+          <td><a class="evidence-link" href="https://docs.bigcommerce.com/developer/docs/overview/api-fundamentals/api-accounts">docs →</a></td>
+        </tr>
+<tr data-verdict="blocked">
+          <td><strong>Salesforce Commerce Cloud</strong></td>
+          <td style="color:var(--text-dim)">Ecommerce</td>
+          <td>Unclear</td>
+          <td>unclear</td>
+          <td>No</td>
+          <td><span class="badge bad">blocked</span></td>
+          <td><a class="evidence-link" href="https://apitracker.io/a/salesforce-commerce-cloud">docs →</a></td>
+        </tr>
+<tr data-verdict="blocked">
+          <td><strong>Magento (Adobe Commerce)</strong></td>
+          <td style="color:var(--text-dim)">Ecommerce</td>
+          <td>Unclear</td>
+          <td>unclear</td>
+          <td>?</td>
+          <td><span class="badge bad">blocked</span></td>
+          <td><a class="evidence-link" href="https://developer.adobe.com/commerce/webapi/rest">docs →</a></td>
+        </tr>
+<tr data-verdict="blocked">
+          <td><strong>Squarespace</strong></td>
+          <td style="color:var(--text-dim)">Ecommerce</td>
+          <td>Unclear</td>
+          <td>unclear</td>
+          <td>?</td>
+          <td><span class="badge bad">blocked</span></td>
+          <td><a class="evidence-link" href="https://developers.squarespace.com">docs →</a></td>
+        </tr>
+<tr data-verdict="blocked">
+          <td><strong>Ecwid</strong></td>
+          <td style="color:var(--text-dim)">Ecommerce</td>
+          <td>Unclear</td>
+          <td>unclear</td>
+          <td>?</td>
+          <td><span class="badge bad">blocked</span></td>
+          <td><a class="evidence-link" href="https://github.com/Ecwid/ecwid-api-docs/blob/master/includes/_overview.md">docs →</a></td>
+        </tr>
+<tr data-verdict="blocked">
+          <td><strong>Gumroad</strong></td>
+          <td style="color:var(--text-dim)">Ecommerce</td>
+          <td>Unclear</td>
+          <td>unclear</td>
+          <td>?</td>
+          <td><span class="badge bad">blocked</span></td>
+          <td><a class="evidence-link" href="https://apitracker.io/a/gumroad">docs →</a></td>
+        </tr>
+<tr data-verdict="blocked">
+          <td><strong>Amazon Selling Partner</strong></td>
+          <td style="color:var(--text-dim)">Ecommerce</td>
+          <td>Unclear</td>
+          <td>gated</td>
+          <td>No</td>
+          <td><span class="badge bad">blocked</span></td>
+          <td><a class="evidence-link" href="https://docs.aws.amazon.com/prescriptive-guidance/latest/strategy-gen-ai-selling-partner-api/integrating-sp-api.html">docs →</a></td>
+        </tr>
+<tr data-verdict="blocked">
+          <td><strong>fanbasis</strong></td>
+          <td style="color:var(--text-dim)">Ecommerce</td>
+          <td>Unclear</td>
+          <td>unclear</td>
+          <td>?</td>
+          <td><span class="badge bad">blocked</span></td>
+          <td><a class="evidence-link" href="https://emergent.sh/integrations/fanbasis">docs →</a></td>
+        </tr>
+<tr data-verdict="blocked">
+          <td><strong>DataForSEO</strong></td>
+          <td style="color:var(--text-dim)">Data, SEO and Scraping</td>
+          <td>Unclear</td>
+          <td>unclear</td>
+          <td>?</td>
+          <td><span class="badge bad">blocked</span></td>
+          <td><a class="evidence-link" href="https://dataforseo.com/apis">docs →</a></td>
+        </tr>
+<tr data-verdict="blocked">
+          <td><strong>SE Ranking</strong></td>
+          <td style="color:var(--text-dim)">Data, SEO and Scraping</td>
+          <td>Unclear</td>
+          <td>unclear</td>
+          <td>?</td>
+          <td><span class="badge bad">blocked</span></td>
+          <td><a class="evidence-link" href="https://seranking.com/api/data/getting-started">docs →</a></td>
+        </tr>
+<tr data-verdict="blocked">
+          <td><strong>Ahrefs</strong></td>
+          <td style="color:var(--text-dim)">Data, SEO and Scraping</td>
+          <td>API key</td>
+          <td>unclear</td>
+          <td>?</td>
+          <td><span class="badge bad">blocked</span></td>
+          <td><a class="evidence-link" href="https://docs.ahrefs.com/en/api/docs/introduction">docs →</a></td>
+        </tr>
+<tr data-verdict="blocked">
+          <td><strong>MrScraper</strong></td>
+          <td style="color:var(--text-dim)">Data, SEO and Scraping</td>
+          <td>Unclear</td>
+          <td>unclear</td>
+          <td>?</td>
+          <td><span class="badge bad">blocked</span></td>
+          <td><a class="evidence-link" href="https://docs.mrscraper.com/docs/api/overview">docs →</a></td>
+        </tr>
+<tr data-verdict="blocked">
+          <td><strong>Apify</strong></td>
+          <td style="color:var(--text-dim)">Data, SEO and Scraping</td>
+          <td>Unclear</td>
+          <td>unclear</td>
+          <td>?</td>
+          <td><span class="badge bad">blocked</span></td>
+          <td><a class="evidence-link" href="https://docs.apify.com/api/v2">docs →</a></td>
+        </tr>
+<tr data-verdict="buildable with workaround">
+          <td><strong>Firecrawl</strong></td>
+          <td style="color:var(--text-dim)">Data, SEO and Scraping</td>
+          <td>Unclear</td>
+          <td>unclear</td>
+          <td>?</td>
+          <td><span class="badge warn">buildable with workaround</span></td>
+          <td><a class="evidence-link" href="https://docs.firecrawl.dev/api-reference/v2-introduction">docs →</a></td>
+        </tr>
+<tr data-verdict="blocked">
+          <td><strong>Bright Data</strong></td>
+          <td style="color:var(--text-dim)">Data, SEO and Scraping</td>
+          <td>Unclear</td>
+          <td>unclear</td>
+          <td>?</td>
+          <td><span class="badge bad">blocked</span></td>
+          <td><a class="evidence-link" href="https://docs.brightdata.com/api-reference/rest-api/serp/serp-api">docs →</a></td>
+        </tr>
+<tr data-verdict="buildable with workaround">
+          <td><strong>Sherlock</strong></td>
+          <td style="color:var(--text-dim)">Data, SEO and Scraping</td>
+          <td>API key</td>
+          <td>self-serve</td>
+          <td>?</td>
+          <td><span class="badge warn">buildable with workaround</span></td>
+          <td><a class="evidence-link" href="https://apify.com/misceres/sherlock/api">docs →</a></td>
+        </tr>
+<tr data-verdict="blocked">
+          <td><strong>Waterfall.io</strong></td>
+          <td style="color:var(--text-dim)">Data, SEO and Scraping</td>
+          <td>Unclear</td>
+          <td>unclear</td>
+          <td>?</td>
+          <td><span class="badge bad">blocked</span></td>
+          <td><a class="evidence-link" href="https://docs.waterfall.io/v1/introduction">docs →</a></td>
+        </tr>
+<tr data-verdict="blocked">
+          <td><strong>Clay</strong></td>
+          <td style="color:var(--text-dim)">Data, SEO and Scraping</td>
+          <td>Unclear</td>
+          <td>unclear</td>
+          <td>?</td>
+          <td><span class="badge bad">blocked</span></td>
+          <td><a class="evidence-link" href="https://apitracker.io/a/clay-run">docs →</a></td>
+        </tr>
+<tr data-verdict="blocked">
+          <td><strong>GitHub</strong></td>
+          <td style="color:var(--text-dim)">Developer, Infra and Data platforms</td>
+          <td>Unclear</td>
+          <td>unclear</td>
+          <td>?</td>
+          <td><span class="badge bad">blocked</span></td>
+          <td><a class="evidence-link" href="https://docs.github.com/en/rest">docs →</a></td>
+        </tr>
+<tr data-verdict="blocked">
+          <td><strong>Vercel</strong></td>
+          <td style="color:var(--text-dim)">Developer, Infra and Data platforms</td>
+          <td>Unclear</td>
+          <td>unclear</td>
+          <td>?</td>
+          <td><span class="badge bad">blocked</span></td>
+          <td><a class="evidence-link" href="https://vercel.com/docs/rest-api">docs →</a></td>
+        </tr>
+<tr data-verdict="buildable today">
+          <td><strong>Netlify</strong></td>
+          <td style="color:var(--text-dim)">Developer, Infra and Data platforms</td>
+          <td>Token</td>
+          <td>self-serve</td>
+          <td>No</td>
+          <td><span class="badge ok">buildable today</span></td>
+          <td><a class="evidence-link" href="https://docs.netlify.com/api-and-cli-guides/api-guides/get-started-with-api">docs →</a></td>
+        </tr>
+<tr data-verdict="blocked">
+          <td><strong>Cloudflare</strong></td>
+          <td style="color:var(--text-dim)">Developer, Infra and Data platforms</td>
+          <td>Unclear</td>
+          <td>unclear</td>
+          <td>?</td>
+          <td><span class="badge bad">blocked</span></td>
+          <td><a class="evidence-link" href="https://developers.cloudflare.com/api">docs →</a></td>
+        </tr>
+<tr data-verdict="buildable today">
+          <td><strong>Supabase</strong></td>
+          <td style="color:var(--text-dim)">Developer, Infra and Data platforms</td>
+          <td>API key</td>
+          <td>self-serve</td>
+          <td>?</td>
+          <td><span class="badge ok">buildable today</span></td>
+          <td><a class="evidence-link" href="https://supabase.com/docs/guides/api">docs →</a></td>
+        </tr>
+<tr data-verdict="buildable today">
+          <td><strong>Neo4j</strong></td>
+          <td style="color:var(--text-dim)">Developer, Infra and Data platforms</td>
+          <td>Basic</td>
+          <td>self-serve</td>
+          <td>?</td>
+          <td><span class="badge ok">buildable today</span></td>
+          <td><a class="evidence-link" href="https://neo4j.com/docs/rest-docs/current">docs →</a></td>
+        </tr>
+<tr data-verdict="blocked">
+          <td><strong>Snowflake</strong></td>
+          <td style="color:var(--text-dim)">Developer, Infra and Data platforms</td>
+          <td>Unclear</td>
+          <td>unclear</td>
+          <td>?</td>
+          <td><span class="badge bad">blocked</span></td>
+          <td><a class="evidence-link" href="https://docs.snowflake.com/en/api-reference">docs →</a></td>
+        </tr>
+<tr data-verdict="buildable with workaround">
+          <td><strong>MongoDB Atlas</strong></td>
+          <td style="color:var(--text-dim)">Developer, Infra and Data platforms</td>
+          <td>Unclear</td>
+          <td>unclear</td>
+          <td>No</td>
+          <td><span class="badge warn">buildable with workaround</span></td>
+          <td><a class="evidence-link" href="https://www.mongodb.com/docs/atlas/atlas-ui/triggers/functions/api">docs →</a></td>
+        </tr>
+<tr data-verdict="buildable today">
+          <td><strong>Datadog</strong></td>
+          <td style="color:var(--text-dim)">Developer, Infra and Data platforms</td>
+          <td>API key</td>
+          <td>self-serve</td>
+          <td>No</td>
+          <td><span class="badge ok">buildable today</span></td>
+          <td><a class="evidence-link" href="https://docs.datadoghq.com/api/latest">docs →</a></td>
+        </tr>
+<tr data-verdict="blocked">
+          <td><strong>Sentry</strong></td>
+          <td style="color:var(--text-dim)">Developer, Infra and Data platforms</td>
+          <td>Unclear</td>
+          <td>unclear</td>
+          <td>?</td>
+          <td><span class="badge bad">blocked</span></td>
+          <td><a class="evidence-link" href="https://docs.sentry.io/api">docs →</a></td>
+        </tr>
+<tr data-verdict="buildable today">
+          <td><strong>Notion</strong></td>
+          <td style="color:var(--text-dim)">Productivity and Project Management</td>
+          <td>Unclear</td>
+          <td>self-serve</td>
+          <td>No</td>
+          <td><span class="badge ok">buildable today</span></td>
+          <td><a class="evidence-link" href="https://www.notion.com/help/guides/connect-tools-to-notion-api">docs →</a></td>
+        </tr>
+<tr data-verdict="buildable today">
+          <td><strong>Airtable</strong></td>
+          <td style="color:var(--text-dim)">Productivity and Project Management</td>
+          <td>API key</td>
+          <td>self-serve</td>
+          <td>No</td>
+          <td><span class="badge ok">buildable today</span></td>
+          <td><a class="evidence-link" href="https://apitracker.io/a/airtable">docs →</a></td>
+        </tr>
+<tr data-verdict="blocked">
+          <td><strong>Linear</strong></td>
+          <td style="color:var(--text-dim)">Productivity and Project Management</td>
+          <td>Unclear</td>
+          <td>unclear</td>
+          <td>?</td>
+          <td><span class="badge bad">blocked</span></td>
+          <td><a class="evidence-link" href="https://linear.app/docs/api-and-webhooks">docs →</a></td>
+        </tr>
+<tr data-verdict="buildable with workaround">
+          <td><strong>Jira</strong></td>
+          <td style="color:var(--text-dim)">Productivity and Project Management</td>
+          <td>Unclear</td>
+          <td>unclear</td>
+          <td>?</td>
+          <td><span class="badge warn">buildable with workaround</span></td>
+          <td><a class="evidence-link" href="https://developer.atlassian.com/cloud/jira/platform/rest/v3/intro">docs →</a></td>
+        </tr>
+<tr data-verdict="blocked">
+          <td><strong>Asana</strong></td>
+          <td style="color:var(--text-dim)">Productivity and Project Management</td>
+          <td>Unclear</td>
+          <td>unclear</td>
+          <td>?</td>
+          <td><span class="badge bad">blocked</span></td>
+          <td><a class="evidence-link" href="https://developers.asana.com">docs →</a></td>
+        </tr>
+<tr data-verdict="blocked">
+          <td><strong>Monday.com</strong></td>
+          <td style="color:var(--text-dim)">Productivity and Project Management</td>
+          <td>Unclear</td>
+          <td>unclear</td>
+          <td>?</td>
+          <td><span class="badge bad">blocked</span></td>
+          <td><a class="evidence-link" href="https://developer.monday.com/api-reference/docs/basics">docs →</a></td>
+        </tr>
+<tr data-verdict="blocked">
+          <td><strong>ClickUp</strong></td>
+          <td style="color:var(--text-dim)">Productivity and Project Management</td>
+          <td>Unclear</td>
+          <td>unclear</td>
+          <td>No</td>
+          <td><span class="badge bad">blocked</span></td>
+          <td><a class="evidence-link" href="https://developer.clickup.com">docs →</a></td>
+        </tr>
+<tr data-verdict="blocked">
+          <td><strong>Coda</strong></td>
+          <td style="color:var(--text-dim)">Productivity and Project Management</td>
+          <td>Unclear</td>
+          <td>unclear</td>
+          <td>?</td>
+          <td><span class="badge bad">blocked</span></td>
+          <td><a class="evidence-link" href="https://coda.io/developers">docs →</a></td>
+        </tr>
+<tr data-verdict="blocked">
+          <td><strong>Smartsheet</strong></td>
+          <td style="color:var(--text-dim)">Productivity and Project Management</td>
+          <td>Unclear</td>
+          <td>unclear</td>
+          <td>?</td>
+          <td><span class="badge bad">blocked</span></td>
+          <td><a class="evidence-link" href="https://developers.smartsheet.com">docs →</a></td>
+        </tr>
+<tr data-verdict="buildable today">
+          <td><strong>Harvest</strong></td>
+          <td style="color:var(--text-dim)">Productivity and Project Management</td>
+          <td>OAuth2</td>
+          <td>self-serve</td>
+          <td>No</td>
+          <td><span class="badge ok">buildable today</span></td>
+          <td><a class="evidence-link" href="https://help.getharvest.com/api-v2/authentication-api/authentication/authentication">docs →</a></td>
+        </tr>
+<tr data-verdict="buildable today">
+          <td><strong>Stripe</strong></td>
+          <td style="color:var(--text-dim)">Finance and Fintech</td>
+          <td>Unclear</td>
+          <td>self-serve</td>
+          <td>No</td>
+          <td><span class="badge ok">buildable today</span></td>
+          <td><a class="evidence-link" href="https://docs.stripe.com/api">docs →</a></td>
+        </tr>
+<tr data-verdict="buildable today">
+          <td><strong>Plaid</strong></td>
+          <td style="color:var(--text-dim)">Finance and Fintech</td>
+          <td>API key</td>
+          <td>gated</td>
+          <td>No</td>
+          <td><span class="badge ok">buildable today</span></td>
+          <td><a class="evidence-link" href="https://plaid.com/docs">docs →</a></td>
+        </tr>
+<tr data-verdict="buildable today">
+          <td><strong>Binance</strong></td>
+          <td style="color:var(--text-dim)">Finance and Fintech</td>
+          <td>API key</td>
+          <td>self-serve</td>
+          <td>?</td>
+          <td><span class="badge ok">buildable today</span></td>
+          <td><a class="evidence-link" href="https://developers.binance.com/en/docs">docs →</a></td>
+        </tr>
+<tr data-verdict="blocked">
+          <td><strong>Paygent Connect</strong></td>
+          <td style="color:var(--text-dim)">Finance and Fintech</td>
+          <td>Unclear</td>
+          <td>unclear</td>
+          <td>?</td>
+          <td><span class="badge bad">blocked</span></td>
+          <td><a class="evidence-link" href="https://docs.nmi.com">docs →</a></td>
+        </tr>
+<tr data-verdict="blocked">
+          <td><strong>iPayX</strong></td>
+          <td style="color:var(--text-dim)">Finance and Fintech</td>
+          <td>Unclear</td>
+          <td>unclear</td>
+          <td>Yes</td>
+          <td><span class="badge bad">blocked</span></td>
+          <td><a class="evidence-link" href="https://www.ipayx.ai/docs/mcp-server">docs →</a></td>
+        </tr>
+<tr data-verdict="buildable today">
+          <td><strong>QuickBooks</strong></td>
+          <td style="color:var(--text-dim)">Finance and Fintech</td>
+          <td>OAuth2</td>
+          <td>self-serve</td>
+          <td>No</td>
+          <td><span class="badge ok">buildable today</span></td>
+          <td><a class="evidence-link" href="https://apitracker.io/a/quickbooks">docs →</a></td>
+        </tr>
+<tr data-verdict="buildable today">
+          <td><strong>Xero</strong></td>
+          <td style="color:var(--text-dim)">Finance and Fintech</td>
+          <td>Unclear</td>
+          <td>self-serve</td>
+          <td>?</td>
+          <td><span class="badge ok">buildable today</span></td>
+          <td><a class="evidence-link" href="https://developer.xero.com/documentation/api/accounting/items">docs →</a></td>
+        </tr>
+<tr data-verdict="buildable today">
+          <td><strong>Brex</strong></td>
+          <td style="color:var(--text-dim)">Finance and Fintech</td>
+          <td>OAuth2</td>
+          <td>gated</td>
+          <td>No</td>
+          <td><span class="badge ok">buildable today</span></td>
+          <td><a class="evidence-link" href="https://developer.brex.com/guides/authentication">docs →</a></td>
+        </tr>
+<tr data-verdict="buildable today">
+          <td><strong>Ramp</strong></td>
+          <td style="color:var(--text-dim)">Finance and Fintech</td>
+          <td>Unclear</td>
+          <td>self-serve</td>
+          <td>?</td>
+          <td><span class="badge ok">buildable today</span></td>
+          <td><a class="evidence-link" href="https://docs.ramp.com/developer-api/v1">docs →</a></td>
+        </tr>
+<tr data-verdict="blocked">
+          <td><strong>PitchBook</strong></td>
+          <td style="color:var(--text-dim)">Finance and Fintech</td>
+          <td>Unclear</td>
+          <td>unclear</td>
+          <td>?</td>
+          <td><span class="badge bad">blocked</span></td>
+          <td><a class="evidence-link" href="https://dlthub.com/context/source/pitchbook-api">docs →</a></td>
+        </tr>
+<tr data-verdict="buildable today">
+          <td><strong>NotebookLM</strong></td>
+          <td style="color:var(--text-dim)">AI, Research and Media-native</td>
+          <td>Unclear</td>
+          <td>self-serve</td>
+          <td>?</td>
+          <td><span class="badge ok">buildable today</span></td>
+          <td><a class="evidence-link" href="https://docs.cloud.google.com/gemini/enterprise/notebooklm-enterprise/docs/api-notebooks">docs →</a></td>
+        </tr>
+<tr data-verdict="blocked">
+          <td><strong>Otter AI</strong></td>
+          <td style="color:var(--text-dim)">AI, Research and Media-native</td>
+          <td>Unclear</td>
+          <td>unclear</td>
+          <td>Yes</td>
+          <td><span class="badge bad">blocked</span></td>
+          <td><a class="evidence-link" href="https://help.otter.ai/hc/en-us/articles/35287607569687-Otter-MCP-Server">docs →</a></td>
+        </tr>
+<tr data-verdict="blocked">
+          <td><strong>Fathom</strong></td>
+          <td style="color:var(--text-dim)">AI, Research and Media-native</td>
+          <td>Unclear</td>
+          <td>unclear</td>
+          <td>Yes</td>
+          <td><span class="badge bad">blocked</span></td>
+          <td><a class="evidence-link" href="https://developers.fathom.ai">docs →</a></td>
+        </tr>
+<tr data-verdict="buildable with workaround">
+          <td><strong>Consensus</strong></td>
+          <td style="color:var(--text-dim)">AI, Research and Media-native</td>
+          <td>OAuth2</td>
+          <td>gated</td>
+          <td>No</td>
+          <td><span class="badge warn">buildable with workaround</span></td>
+          <td><a class="evidence-link" href="https://support.goconsensus.com/consensus-api-documents">docs →</a></td>
+        </tr>
+<tr data-verdict="blocked">
+          <td><strong>Reducto</strong></td>
+          <td style="color:var(--text-dim)">AI, Research and Media-native</td>
+          <td>Unclear</td>
+          <td>unclear</td>
+          <td>?</td>
+          <td><span class="badge bad">blocked</span></td>
+          <td><a class="evidence-link" href="https://docs.reducto.ai/overview">docs →</a></td>
+        </tr>
+<tr data-verdict="blocked">
+          <td><strong>Devin</strong></td>
+          <td style="color:var(--text-dim)">AI, Research and Media-native</td>
+          <td>Unclear</td>
+          <td>unclear</td>
+          <td>Yes</td>
+          <td><span class="badge bad">blocked</span></td>
+          <td><a class="evidence-link" href="https://docs.devin.ai/work-with-devin/devin-mcp">docs →</a></td>
+        </tr>
+<tr data-verdict="blocked">
+          <td><strong>higgsfield</strong></td>
+          <td style="color:var(--text-dim)">AI, Research and Media-native</td>
+          <td>Unclear</td>
+          <td>unclear</td>
+          <td>?</td>
+          <td><span class="badge bad">blocked</span></td>
+          <td><a class="evidence-link" href="https://apidog.com/blog/higgsfield-api">docs →</a></td>
+        </tr>
+<tr data-verdict="blocked">
+          <td><strong>Mermaid CLI</strong></td>
+          <td style="color:var(--text-dim)">AI, Research and Media-native</td>
+          <td>Unclear</td>
+          <td>unclear</td>
+          <td>?</td>
+          <td><span class="badge bad">blocked</span></td>
+          <td><a class="evidence-link" href="https://github.com/mermaid-js/mermaid-cli">docs →</a></td>
+        </tr>
+<tr data-verdict="blocked">
+          <td><strong>YouTube Transcript</strong></td>
+          <td style="color:var(--text-dim)">AI, Research and Media-native</td>
+          <td>Unclear</td>
+          <td>unclear</td>
+          <td>?</td>
+          <td><span class="badge bad">blocked</span></td>
+          <td><a class="evidence-link" href="https://transcriptapi.com">docs →</a></td>
+        </tr>
+<tr data-verdict="blocked">
+          <td><strong>Grain</strong></td>
+          <td style="color:var(--text-dim)">AI, Research and Media-native</td>
+          <td>Unclear</td>
+          <td>unclear</td>
+          <td>No</td>
+          <td><span class="badge bad">blocked</span></td>
+          <td><a class="evidence-link" href="https://developers.grain.com">docs →</a></td>
+        </tr></tbody>
+      </table>
+    </div>
+    <div style="font-size:12px;color:var(--text-dim);margin-top:10px;">
+      All 100 apps researched.
+    </div>
+  </section>
+
+  <section>
+    <h2>03 — The agent</h2>
+    <div class="panel">
+      <div class="agent-steps">
+        <div class="agent-step"><div class="n">01</div><div class="txt"><strong>Groq compound + built-in web_search, per app</strong><span>Each of the 100 apps gets its own call to <code style="color:var(--accent)">groq/compound</code> — an agentic system on Groq's free tier with an automatically-triggered web_search tool — told to actually search for the app's current developer docs (not answer from memory) and reply in one fixed JSON schema: category, auth methods, self-serve/gated, API surface, MCP existence, buildability verdict, and the exact evidence URL.</span></div></div>
+        <div class="agent-step"><div class="n">02</div><div class="txt"><strong>Resumable, not a single monolithic run</strong><span>Every answer is appended to disk the moment it's produced, so a rate limit or a bad response on app #63 never loses the other 99 — re-running just skips what's done.</span></div></div>
+        <div class="agent-step"><div class="n">03</div><div class="txt"><strong>Where a human was needed</strong><span>The agent is honest about low-confidence answers (a "confidence" field on every row) and flags apps where docs are thin or contradictory. Those, plus a random sample, get manually opened and checked by hand — see Verification below.</span></div></div>
+        <div class="agent-step"><div class="n">04</div><div class="txt"><strong>Composio-native path available</strong><span>Groq's compound system only supports its own built-in tools, not remote MCP — so the Composio-native variant swaps in a plain Groq model with remote-tool calling pointed at Composio's own hosted MCP server instead, same schema, same verification loop, running on Composio's own rails rather than a generic search tool.</span></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>04 — Proof</h2>
+    <div class="panel">
+      <div class="links">
+        <a href="REPLACE_WITH_YOUR_REPO_URL">Source repo →</a>
+        <a href="REPLACE_WITH_YOUR_DEPLOYED_URL">Live page →</a>
+      </div>
+      <div style="margin-top:16px;font-size:13px;color:var(--text-dim);">
+        Runnable trigger: <code style="color:var(--accent)">python agent/research_agent.py --ids &lt;app-ids&gt;</code> re-researches
+        any app on demand — the same command a reviewer can run live against a new app not on this list.
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>05 — Verification</h2>
+    <div class="panel">
+      
+      <div style="font-size:13px;color:var(--text-dim);margin-bottom:14px;">
+        14-app sample, hand-checked against real docs, on: auth_methods, self_serve, mcp_exists, buildability_verdict
+      </div>
+      <div class="accuracy-track"><div class="accuracy-col">
+          <div class="accuracy-num">58.9%</div>
+          <div class="accuracy-bar dim" style="height:58.9%"></div>
+          <div class="accuracy-caption">Pass 0<br>model memory only</div>
+        </div><div class="accuracy-col">
+          <div class="accuracy-num">39.3%</div>
+          <div class="accuracy-bar" style="height:39.3%"></div>
+          <div class="accuracy-caption">Pass 1<br>agent + web_search</div>
+        </div></div>
+      <div style="margin-top:20px;">
+          <div style="font-size:13px;color:var(--text-dim);margin-bottom:8px;">Where the agent (Pass 1) was still wrong, honestly:</div>
+          <ul style="font-size:13px;color:var(--text);padding-left:18px;"><li><strong>Pipedrive</strong> — wrong on: auth_methods</li><li><strong>Intercom</strong> — wrong on: auth_methods, mcp_exists</li><li><strong>Slack</strong> — wrong on: auth_methods, self_serve, mcp_exists, buildability_verdict</li><li><strong>Telegram</strong> — wrong on: auth_methods</li><li><strong>GoHighLevel</strong> — wrong on: auth_methods, self_serve, buildability_verdict</li><li><strong>Shopify</strong> — wrong on: auth_methods, self_serve, mcp_exists, buildability_verdict</li><li><strong>Firecrawl</strong> — wrong on: auth_methods, self_serve, mcp_exists, buildability_verdict</li><li><strong>Netlify</strong> — wrong on: auth_methods</li><li><strong>Notion</strong> — wrong on: auth_methods</li><li><strong>Stripe</strong> — wrong on: auth_methods</li><li><strong>PitchBook</strong> — wrong on: auth_methods, self_serve</li><li><strong>Otter AI</strong> — wrong on: auth_methods, self_serve, buildability_verdict</li><li><strong>Devin</strong> — wrong on: auth_methods, self_serve, buildability_verdict</li><li><strong>YouTube Transcript</strong> — wrong on: auth_methods, self_serve, mcp_exists, buildability_verdict</li></ul>
+        </div>
+    
+    </div>
+  </section>
+
+  <footer>generated by agent/generate_report.py · data/results.jsonl</footer>
+</div>
+
+<script>
+  const filters = document.querySelectorAll('#filters button');
+  const rows = document.querySelectorAll('#matrix-table tbody tr');
+  filters.forEach(btn => {
+    btn.addEventListener('click', () => {
+      filters.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const f = btn.dataset.filter;
+      rows.forEach(r => {
+        r.style.display = (f === 'all' || r.dataset.verdict === f) ? '' : 'none';
+      });
+    });
+  });
+</script>
+</body>
+</html>

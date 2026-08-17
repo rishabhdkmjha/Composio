@@ -1,0 +1,18 @@
+Total offenders: 64
+ - medium: 5
+ - low: 58
+ - high: 1
+
+Top 12 offenders (id, app, confidence, evidence_url):
+2, HubSpot, high, https://developers.hubspot.com/docs
+5, Twenty, low, https://docs.twenty.com/developers/extend/api
+6, Podio, low, https://developers.podio.com
+7, Zoho CRM, low, https://www.zoho.com/crm/developer/docs
+8, Close, low, https://developer.close.com/api/overview
+10, DealCloud, low, https://api.docs.dealcloud.com/docs
+11, Zendesk, low, https://developer.zendesk.com/api-reference
+13, Freshdesk, low, https://developers.freshworks.com/docs
+15, Pylon, low, https://docs.usepylon.com/pylon-docs/developer/api
+17, Plain, low, https://help.plain.com/article/api-quickstart
+18, Help Scout, low, https://docs.helpscout.com/article/1141-docs-api
+20, Gladly, low, https://developer.gladly.com/rest

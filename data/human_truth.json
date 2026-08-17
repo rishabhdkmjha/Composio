@@ -1,0 +1,114 @@
+{
+  "3": {
+    "app": "Pipedrive",
+    "auth_methods": ["API key"],
+    "self_serve": "self-serve",
+    "mcp_exists": false,
+    "buildability_verdict": "buildable today",
+    "notes": "Pipedrive exposes a REST API authenticated by an API token (see developers.pipedrive.com/docs). OpenAPI specs and sandbox available. Evidence: https://developers.pipedrive.com/docs/api/v1"
+  },
+  "12": {
+    "app": "Intercom",
+    "auth_methods": ["OAuth2"],
+    "self_serve": "self-serve",
+    "mcp_exists": "unclear",
+    "buildability_verdict": "buildable today",
+    "notes": "Intercom developer docs provide onboarding for a free development workspace and app integration flow; standard OAuth2 flows used for public apps. Evidence: https://developers.intercom.com/"
+  },
+  "21": {
+    "app": "Slack",
+    "auth_methods": ["OAuth2"],
+    "self_serve": "self-serve",
+    "mcp_exists": false,
+    "buildability_verdict": "buildable today",
+    "notes": "Slack apps use OAuth2 (user/bot tokens) and the API docs are public. Evidence: https://api.slack.com/"
+  },
+  "27": {
+    "app": "Telegram",
+    "auth_methods": ["Token"],
+    "self_serve": "self-serve",
+    "mcp_exists": false,
+    "buildability_verdict": "buildable today",
+    "notes": "Telegram Bot API uses a Bot token (single string) obtained from BotFather; public docs at core.telegram.org. Evidence: https://core.telegram.org/bots/api"
+  },
+  "34": {
+    "app": "GoHighLevel",
+    "auth_methods": ["OAuth2"],
+    "self_serve": "self-serve",
+    "mcp_exists": "unclear",
+    "buildability_verdict": "buildable today",
+    "notes": "HighLevel provides public API docs and notes an OAuth-based API (API 2.0). Evidence: https://developers.gohighlevel.com/ and https://public-api.gohighlevel.com/"
+  },
+  "41": {
+    "app": "Shopify",
+    "auth_methods": ["OAuth2"],
+    "self_serve": "self-serve",
+    "mcp_exists": false,
+    "buildability_verdict": "buildable today",
+    "notes": "Shopify apps use OAuth2 and have extensive developer docs and CLI tooling. Evidence: https://shopify.dev/"
+  },
+  "56": {
+    "app": "Firecrawl",
+    "auth_methods": ["API key"],
+    "self_serve": "self-serve",
+    "mcp_exists": true,
+    "buildability_verdict": "buildable today",
+    "notes": "Public developer docs exist at https://docs.firecrawl.dev; auth is a Bearer API key (fc-...). Docs also show a keyless quickstart tier for basic testing before signup. Evidence: https://docs.firecrawl.dev/ and https://api.firecrawl.dev/v2/scrape"
+  },
+  "63": {
+    "app": "Netlify",
+    "auth_methods": ["API key","OAuth2"],
+    "self_serve": "self-serve",
+    "mcp_exists": false,
+    "buildability_verdict": "buildable today",
+    "notes": "Netlify supports Personal Access Tokens (PATs) for scripts and OAuth2 for public integrations; API docs include examples and rate limits. Evidence: https://docs.netlify.com/api/get-started/"
+  },
+  "71": {
+    "app": "Notion",
+    "auth_methods": ["API key","OAuth2"],
+    "self_serve": "self-serve",
+    "mcp_exists": false,
+    "buildability_verdict": "buildable today",
+    "notes": "Notion supports personal access tokens, internal/public connections and OAuth2 for public apps; docs show clear quickstarts. Evidence: https://developers.notion.com/"
+  },
+  "81": {
+    "app": "Stripe",
+    "auth_methods": ["API key"],
+    "self_serve": "self-serve",
+    "mcp_exists": false,
+    "buildability_verdict": "buildable today",
+    "notes": "Stripe uses secret API keys and a public docs site with examples; keys are obtainable from a Stripe dashboard. Evidence: https://stripe.com/docs/api"
+  },
+  "90": {
+    "app": "PitchBook",
+    "auth_methods": ["Enterprise API (gated)","SFTP/partner feeds"],
+    "self_serve": "gated",
+    "mcp_exists": "unclear",
+    "buildability_verdict": "blocked",
+    "notes": "PitchBook's commercial product pages are public (https://pitchbook.com) but API/feeds are gated behind enterprise contracts; public developer docs were not accessible without login. Evidence: https://pitchbook.com/"
+  },
+  "92": {
+    "app": "Otter AI",
+    "auth_methods": ["API key"],
+    "self_serve": "gated",
+    "mcp_exists": true,
+    "buildability_verdict": "buildable with workaround",
+    "notes": "Otter's Public API uses Bearer token/API key auth (created via Sign in > Integrations > Developer tab), but is gated to Enterprise workspaces only and requires an account manager to enable. Otter also has an MCP server for querying an existing Otter archive. Evidence: https://help.otter.ai/hc/en-us/articles/36130822688279-Otter-ai-Public-API and https://help.otter.ai/hc/en-us/articles/4412365535895-Does-Otter-offer-an-open-API"
+  },
+  "96": {
+    "app": "Devin",
+    "auth_methods": ["API key"],
+    "self_serve": "self-serve",
+    "mcp_exists": true,
+    "buildability_verdict": "buildable today",
+    "notes": "Devin has public docs and an API reference at https://docs.devin.ai; auth is via Bearer token/API key from a 'service user'; onboarding requires signing up at https://app.devin.ai. Enterprise tier adds RBAC/multi-org support. Evidence: https://docs.devin.ai/api-reference/overview and https://devin.ai/"
+  },
+  "99": {
+    "app": "YouTube Transcript",
+    "auth_methods": ["API key","OAuth2"],
+    "self_serve": "self-serve",
+    "mcp_exists": false,
+    "buildability_verdict": "buildable today",
+    "notes": "YouTube Data API (Google) supports API keys for read-only requests and OAuth2 for user-authorized access; enable in Google Cloud console. Evidence: https://developers.google.com/youtube/v3"
+  }
+}

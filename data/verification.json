@@ -1,0 +1,239 @@
+{
+  "sample_size": 14,
+  "fields_checked": [
+    "auth_methods",
+    "self_serve",
+    "mcp_exists",
+    "buildability_verdict"
+  ],
+  "per_app": [
+    {
+      "id": 3,
+      "app": "Pipedrive",
+      "pass0": {
+        "auth_methods": false,
+        "self_serve": true,
+        "mcp_exists": false,
+        "buildability_verdict": true
+      },
+      "pass1": {
+        "auth_methods": false,
+        "self_serve": true,
+        "mcp_exists": true,
+        "buildability_verdict": true
+      }
+    },
+    {
+      "id": 12,
+      "app": "Intercom",
+      "pass0": {
+        "auth_methods": false,
+        "self_serve": true,
+        "mcp_exists": true,
+        "buildability_verdict": true
+      },
+      "pass1": {
+        "auth_methods": false,
+        "self_serve": true,
+        "mcp_exists": false,
+        "buildability_verdict": true
+      }
+    },
+    {
+      "id": 21,
+      "app": "Slack",
+      "pass0": {
+        "auth_methods": false,
+        "self_serve": true,
+        "mcp_exists": false,
+        "buildability_verdict": true
+      },
+      "pass1": {
+        "auth_methods": false,
+        "self_serve": false,
+        "mcp_exists": false,
+        "buildability_verdict": false
+      }
+    },
+    {
+      "id": 27,
+      "app": "Telegram",
+      "pass0": {
+        "auth_methods": true,
+        "self_serve": true,
+        "mcp_exists": false,
+        "buildability_verdict": true
+      },
+      "pass1": {
+        "auth_methods": false,
+        "self_serve": true,
+        "mcp_exists": true,
+        "buildability_verdict": true
+      }
+    },
+    {
+      "id": 34,
+      "app": "GoHighLevel",
+      "pass0": {
+        "auth_methods": false,
+        "self_serve": true,
+        "mcp_exists": false,
+        "buildability_verdict": true
+      },
+      "pass1": {
+        "auth_methods": false,
+        "self_serve": false,
+        "mcp_exists": true,
+        "buildability_verdict": false
+      }
+    },
+    {
+      "id": 41,
+      "app": "Shopify",
+      "pass0": {
+        "auth_methods": false,
+        "self_serve": false,
+        "mcp_exists": false,
+        "buildability_verdict": true
+      },
+      "pass1": {
+        "auth_methods": false,
+        "self_serve": false,
+        "mcp_exists": false,
+        "buildability_verdict": false
+      }
+    },
+    {
+      "id": 56,
+      "app": "Firecrawl",
+      "pass0": {
+        "auth_methods": true,
+        "self_serve": true,
+        "mcp_exists": false,
+        "buildability_verdict": true
+      },
+      "pass1": {
+        "auth_methods": false,
+        "self_serve": false,
+        "mcp_exists": false,
+        "buildability_verdict": false
+      }
+    },
+    {
+      "id": 63,
+      "app": "Netlify",
+      "pass0": {
+        "auth_methods": false,
+        "self_serve": true,
+        "mcp_exists": true,
+        "buildability_verdict": true
+      },
+      "pass1": {
+        "auth_methods": false,
+        "self_serve": true,
+        "mcp_exists": true,
+        "buildability_verdict": true
+      }
+    },
+    {
+      "id": 71,
+      "app": "Notion",
+      "pass0": {
+        "auth_methods": false,
+        "self_serve": true,
+        "mcp_exists": true,
+        "buildability_verdict": true
+      },
+      "pass1": {
+        "auth_methods": false,
+        "self_serve": true,
+        "mcp_exists": true,
+        "buildability_verdict": true
+      }
+    },
+    {
+      "id": 81,
+      "app": "Stripe",
+      "pass0": {
+        "auth_methods": false,
+        "self_serve": true,
+        "mcp_exists": false,
+        "buildability_verdict": true
+      },
+      "pass1": {
+        "auth_methods": false,
+        "self_serve": true,
+        "mcp_exists": true,
+        "buildability_verdict": true
+      }
+    },
+    {
+      "id": 90,
+      "app": "PitchBook",
+      "pass0": {
+        "auth_methods": false,
+        "self_serve": true,
+        "mcp_exists": true,
+        "buildability_verdict": true
+      },
+      "pass1": {
+        "auth_methods": false,
+        "self_serve": false,
+        "mcp_exists": true,
+        "buildability_verdict": true
+      }
+    },
+    {
+      "id": 92,
+      "app": "Otter AI",
+      "pass0": {
+        "auth_methods": false,
+        "self_serve": true,
+        "mcp_exists": true,
+        "buildability_verdict": false
+      },
+      "pass1": {
+        "auth_methods": false,
+        "self_serve": false,
+        "mcp_exists": true,
+        "buildability_verdict": false
+      }
+    },
+    {
+      "id": 96,
+      "app": "Devin",
+      "pass0": {
+        "auth_methods": false,
+        "self_serve": false,
+        "mcp_exists": true,
+        "buildability_verdict": false
+      },
+      "pass1": {
+        "auth_methods": false,
+        "self_serve": false,
+        "mcp_exists": true,
+        "buildability_verdict": false
+      }
+    },
+    {
+      "id": 99,
+      "app": "YouTube Transcript",
+      "pass0": {
+        "auth_methods": false,
+        "self_serve": true,
+        "mcp_exists": true,
+        "buildability_verdict": true
+      },
+      "pass1": {
+        "auth_methods": false,
+        "self_serve": false,
+        "mcp_exists": false,
+        "buildability_verdict": false
+      }
+    }
+  ],
+  "pass_accuracy": {
+    "pass0_baseline": 58.9,
+    "pass1_agent": 39.3
+  }
+}
